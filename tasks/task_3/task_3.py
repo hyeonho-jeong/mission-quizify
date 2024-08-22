@@ -1,13 +1,13 @@
 # pdf_processing.py
 
 # Necessary imports
-import streamlit as st
-from langchain_community.document_loaders import PyPDFLoader
-import os
-import tempfile
-import uuid
+import streamlit as st #웹 애플리케이션을 만듬
+from langchain_community.document_loaders import PyPDFLoader #pdf 파일을 로드하고 처리하는데 사용
+import os #파일을 경로와 임시파일 관리 위해 사용
+import tempfile #
+import uuid #고유한 파일 이름 생성하는데 사용
 
-class DocumentProcessor:
+class DocumentProcessor:#pdf 문서 처리 기능 캡슐화
     """
     This class encapsulates the functionality for processing uploaded PDF documents using Streamlit
     and Langchain's PyPDFLoader. It provides a method to render a file uploader widget, process the
@@ -47,18 +47,21 @@ class DocumentProcessor:
             # Allow only type `pdf`
             # Allow multiple PDFs for ingestion
             #####################################
+            "Upload PDF File",
+            type = ['pdf'],#오직 pdf 파일만 
+            accept_multiple_files=True#여러개의 파일을 한번에 업로드 하게 도와줌
         )
         
         if uploaded_files is not None:
-            for uploaded_file in uploaded_files:
+            for uploaded_file in uploaded_files:#반복문
                 # Generate a unique identifier to append to the file's original name
                 unique_id = uuid.uuid4().hex
                 original_name, file_extension = os.path.splitext(uploaded_file.name)
                 temp_file_name = f"{original_name}_{unique_id}{file_extension}"
                 temp_file_path = os.path.join(tempfile.gettempdir(), temp_file_name)
-
+                                
                 # Write the uploaded PDF to a temporary file
-                with open(temp_file_path, 'wb') as f:
+                with open(temp_file_path, 'wb') as f:#업로드된 파일을 임시파일로 저장
                     f.write(uploaded_file.getvalue())
 
                 # Step 2: Process the temporary file
@@ -67,11 +70,19 @@ class DocumentProcessor:
                 # https://python.langchain.com/docs/modules/data_connection/document_loaders/pdf#using-pypdf
                 # You will need to figure out how to use PyPDFLoader to process the temporary file.
                 
+                try:
+                    # Initialize PyPDFLoader with the path to the temporary file
+                    pdf_loader = PyPDFLoader(temp_file_path)
+
+                    # Load the pages from the PDF
+                    extracted_pages = pdf_loader.load()
+
                 # Step 3: Then, Add the extracted pages to the 'pages' list.
                 #####################################
-                
-                # Clean up by deleting the temporary file.
-                os.unlink(temp_file_path)
+                    self.pages.extend(extracted_pages)
+                finally:
+                    # Clean up by deleting the temporary file.
+                    os.unlink(temp_file_path)
             
             # Display the total number of pages processed.
             st.write(f"Total pages processed: {len(self.pages)}")
